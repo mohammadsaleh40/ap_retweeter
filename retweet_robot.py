@@ -8,7 +8,11 @@ import numpy as np
 import pickle
 import string
 from tensorflow.keras.models import load_model
+from tokens import telegram_token , ap_chanel_id , bearer_token , consumer_key , consumer_secret , access_token , access_token_secret
+import os
+dirname = os.path.dirname(__file__)
 
+print(dirname)
 def chek_fohsh(inp):
     fohsh=[
             "جمهوری_اسلامی",
@@ -221,16 +225,10 @@ def chek_fohsh(inp):
             "حشر",
             "لاس",
             "زارت",
-            "رشتیf",
-            "ترک",
-            "فارس",
-            "لر",
-            "عرب",
             "خر",
             "گاو",
             "اسب",
             "گوسفند",
-            "کرم",
             "الاق",
             "الاغ",
             "احمق",
@@ -305,30 +303,33 @@ def tweet_to_dict(tweet):
 #ارسال توییت‌ها داخل تلگرام
 def send_to_telegram(matn):
 #TODO
-    base_url = "#TODO"
+    base_url = "https://api.telegram.org/bot"+telegram_token+"/sendMessage"
 
 
 #TODO
-    parameters = {"chat_id":"#TODO" , "text": matn}
+    parameters = {"chat_id":ap_chanel_id , "text": matn}
     r = requests.get(base_url, params=parameters)
 
 
 #TODO
-auth = tweepy.OAuthHandler("#TODO", "#TODO")
-auth.set_access_token("#TODO", "#TODO")
-api = tweepy.API(auth)
+auth = tweepy.OAuthHandler( consumer_key  , consumer_secret)
+auth.set_access_token(access_token,access_token_secret)
+api = tweepy.API(auth , wait_on_rate_limit = True)
 
 #TODO
-client = tweepy.Client(bearer_token="#TODO",
-                       consumer_key="#TODO",
-                       consumer_secret="#TODO",
-                       access_token="#TODO",
-                       access_token_secret="#TODO")
+client = tweepy.Client(bearer_token = bearer_token,
+                       consumer_key = consumer_key,
+                       consumer_secret = consumer_secret,
+                       access_token = access_token,
+                       access_token_secret = access_token_secret,
+                       wait_on_rate_limit = True)
 
 
 list_vaje = [
     'مدارس',
-    'تربیتی','تعلیم تربیت','آ.پ.','آ.پ','آموزش و پرورش','دانشگاه فرهنگیان','تربیت معلم','دانش سرا','ماده 28','پرورشی','خرید خدمات آموزشی']
+    'تربیتی','تعلیم تربیت','آ.پ.','آ.پ','آموزش و پرورش','دانشگاه فرهنگیان','تربیت معلم','دانش سرا','ماده 28','پرورشی','خرید خدمات آموزشی',
+    'رتبه بندی', 'رتبه بندی', 'رتبه_بندی', 'غیر انتفاعی', 'مدرسه', 'دبستان', 'مهدکودک', 'پیش دبستانی', 'دبیرستان',
+    'علوم تربیتی', 'برنامه درسی', 'نظام آموزشی', 'کلاس' ,'school' ,'education']
 query= ""
 list_query = [list_vaje[0]+ " -is:retweet lang:fa" ]
 i=1
@@ -342,11 +343,11 @@ while i <len(list_vaje):
         list_query.append(list_vaje[i] +" -is:retweet lang:fa")
         j+=1
     i+=1
-adress="retweet/"
-def retweet_ap():
+adress=dirname
+def retweet_ap(rooz_ghabl = 1):
     #store date of today in last day and the day before yesterday in ld in date (ISO 8601) format
-    d = time.strftime("%Y-%m-%d", time.localtime(time.time() - 86400))+"T00:00:00.000Z"
-    ld = time.strftime("%Y-%m-%d", time.localtime(time.time() - 2*86400)) +"T00:00:00.000Z"
+    d = time.strftime("%Y-%m-%d", time.localtime(time.time() -rooz_ghabl* 86400))+"T00:00:00.000Z"
+    ld = time.strftime("%Y-%m-%d", time.localtime(time.time() - (rooz_ghabl+1)*86400)) +"T00:00:00.000Z"
 
 
     tweet_of_today = set({})
@@ -385,15 +386,15 @@ def retweet_ap():
 
             if len(tweet_normal) != t_normal:
                 dtweet_normal.append(tweet_to_dict(tweet))
-    with open(adress+d[:-14]+'fohsh.json', 'w') as f:
+    with open(adress+"/data/"+d[:-14]+'fohsh.json', 'w') as f:
         #indent=4 is for readability
         json.dump(dtweet_fohsh, f, indent=4)
-    with open(adress+d[:-14]+'normal.json', 'w') as f:
+    with open(adress+"/data/"+d[:-14]+'normal.json', 'w') as f:
         #indent=4 is for readability
         json.dump(dtweet_normal, f, indent=4)
 
     #read from d+normal.json to dataframe
-    df = pd.read_json(adress+d[:-14]+'normal.json' , orient='records',)
+    df = pd.read_json(adress+"/data/"+d[:-14]+'normal.json' , orient='records',)
     df['retweet_count'] = df['public_metrics'].apply(lambda x: x['retweet_count'])
     df['like_count'] = df['public_metrics'].apply(lambda x: x['like_count'])
     df['reply_count'] = df['public_metrics'].apply(lambda x: x['reply_count'])
@@ -409,8 +410,7 @@ def retweet_ap():
     for x in ret[ret["emtiyaz"]>10]["id"]:
         print(x)
         try:
-            pass
-            #api.retweet(x)
+            api.retweet(x)
         except:
             pass
 
@@ -434,10 +434,10 @@ def retweet_ap():
 #______AAA                III__AAAAAAIIIIII
 
 #import model.h5 as model whith tensorflow
-model = load_model('pickle_x/model_2022_01_25.h5')
+model = load_model(dirname+'/pickle_x/model_2022_01_25.h5')
 
 
-f = open('pickle_x/tkn', 'rb')
+f = open(dirname+'/pickle_x/tkn', 'rb')
 tkn = pickle.load(f)
 f.close()
 
@@ -485,5 +485,4 @@ def array_text_to_padded_docs(sotoon_text):
 
 def text_to_emtiyaz(text):
     return model.predict(array_text_to_padded_docs(text))
-
 
